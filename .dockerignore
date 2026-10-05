@@ -3,3 +3,9 @@ target
 node_modules
 .turbo
 **/.env
+.git
+**/node_modules
+**/build
+**/dist
+**/.turbo
+**/.react-router

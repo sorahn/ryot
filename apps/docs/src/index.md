@@ -21,8 +21,8 @@ services:
       - POSTGRES_PASSWORD=postgres
 
   ryot:
-    image: ghcr.io/sorahn/ryot:latest # prefer a tested commit tag or digest
-    pull_policy: always
+    image: localhost/ryot:latest # prefer a tested commit tag or digest
+    pull_policy: never
     container_name: ryot
     restart: unless-stopped
     ports:
@@ -46,12 +46,14 @@ This modified GPLv3 fork enables the existing self-hosted Pro features by defaul
 No `SERVER_PRO_KEY` or subscription is required. See [feature availability](./concepts/pro-key.md)
 for configuration requirements. This is not an official Ryot release.
 
-## Releases
+## Local Builds
 
-Fork builds are published to [GitHub Container Registry](https://github.com/sorahn/ryot/pkgs/container/ryot)
-for AMD64 and ARM64. The `latest` and `develop` tags follow the fork's main branch;
-prefer a tested commit tag or digest for deployment. Upstream images do not include
-this fork's changes. Back up your database before upgrades.
+This fork builds locally; GitHub Actions and automatic publishing are disabled.
+Run `bash ci/build-fork.sh amd64` (or `arm64` on the target machine) from the source
+checkout. The image stays in your local container engine as `localhost/ryot:latest`.
+See [the fork build guide](https://github.com/sorahn/ryot/blob/main/FORK.md) for
+prerequisites, cross-building, and transferring an image without a registry.
+Back up your database before deploying an upgrade.
 
 ## Telemetry
 

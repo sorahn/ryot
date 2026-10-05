@@ -39,6 +39,9 @@
 
 ## Quick Start
 
+Build the local image first with `bash ci/build-fork.sh amd64` (or `arm64` on an ARM64
+machine). See [FORK.md](./FORK.md) for prerequisites and cross-building.
+
 Create a `docker-compose.yml` file:
 
 ```yaml
@@ -52,7 +55,8 @@ services:
       - postgres_storage:/var/lib/postgresql
 
   ryot:
-    image: ghcr.io/sorahn/ryot:latest
+    image: localhost/ryot:latest
+    pull_policy: never
     restart: unless-stopped
     ports:
       - "8000:8000"

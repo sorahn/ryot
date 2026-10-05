@@ -52,18 +52,53 @@ After merging, check for new independent feature gates, run validation, and revi
 the resulting diff before committing/pushing. Do not use GitHub's unguarded
 **Sync fork** button. CI also checks the full branch history before building.
 
-## Container builds
+## Local container builds
 
-The Fork build workflow produces AMD64 and ARM64 images at
-`ghcr.io/sorahn/ryot`. Main pushes publish `latest`, `develop`, and a commit SHA
-tag. Prefer a tested immutable `sha-...` tag or digest for deployment. Pull-request
-builds do not publish images. The workflow uses the repository's `GITHUB_TOKEN`
-for GHCR; no upstream Unkey or Docker Hub secrets are needed.
+GitHub Actions is disabled for this fork. Builds run locally and do not upload
+images to a registry. Install Rust/rustup (the toolchain is pinned in
+`rust-toolchain.toml`), Node 24, and Podman or Docker. Yarn is included in the repo.
 
-The existing Dockerfile expects compiled binaries at
-`artifact/backend-amd64/backend` and `artifact/backend-arm64/backend`. The workflow
-builds the email templates and Rust backend before assembling the container.
-Running `docker build .` from a fresh checkout alone is insufficient.
+```sh
+bash ci/build-fork.sh amd64
+# For the ARM64 homelab node:
+bash ci/build-fork.sh arm64
+```
+
+The script checks the licensing history, builds the email templates and backend,
+and assembles the existing Dockerfile. It creates a local image named
+`localhost/ryot:fork-COMMIT-ARCH` and tags it `localhost/ryot:latest`. Override the
+image name with `FORK_IMAGE` or choose Docker with `CONTAINER_ENGINE=docker`.
+`APP_VERSION` can override the embedded version. Dirty checkouts get a `-dirty`
+marker in the default image name.
+
+When targeting a different CPU architecture, install `cross` and the Rust target
+via rustup. Cross uses the container engine and pinned images in `Cross.toml`.
+Building the foreign-architecture container also requires working binfmt/QEMU
+emulation. Building on a native ARM64 machine avoids those requirements. ARM64
+cross-building has not yet been validated on this Fedora workstation.
+
+The local runtime uses Node 24 on Debian Trixie, which supports the glibc symbols
+used by the Fedora-built native backend. The Dockerfile checks linked libraries
+before finishing; an older runtime may reject a newer host-built binary.
+
+The Dockerfile expects the binary in `artifact/backend-ARCH/backend`; the script
+creates that ignored directory. Running `podman build .` from a fresh checkout
+alone is insufficient.
+
+A registry is optional. Export a local image, copy the archive to the target
+machine, and load it there:
+
+```sh
+podman save --format oci-archive -o ryot-arm64.tar localhost/ryot:fork-COMMIT-arm64
+# Copy ryot-arm64.tar to the target machine using your preferred transfer method.
+# With containerd/K3s on that machine:
+sudo k3s ctr images import ryot-arm64.tar
+```
+
+For Kubernetes, use the imported image's exact name and set `imagePullPolicy: Never`
+(or `IfNotPresent`). Import on every node that might run the pod, or constrain it
+to the node where the image is loaded. A registry simplifies distribution across
+nodes but is not necessary. Deployment and database backup are separate steps.
 
 ## Validation
 
@@ -82,13 +117,18 @@ yarn turbo run test --filter=@ryot/tests
 
 The integration suite requires a Docker-compatible daemon, Caddy, and the frontend
 toolchain. It creates disposable PostgreSQL/S3 containers and mock OIDC/local
-application processes. The health regression asserts that Pro status is enabled
-without a key; the existing authorization/security tests exercise access boundaries.
+application processes. The health regressions check enabled status and access-link creation without a key,
+and reject anonymous access; the existing authorization/security tests exercise access boundaries.
 Back up the database before deploying an upgrade. No schema changes are required
 by this fork's feature change.
 
 If the upstream default MinIO image is unavailable, set `TEST_S3_IMAGE` to
 `rustfs/rustfs@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c`,
-the S3-compatible image used by the fork's CI. The upstream harness supports it.
+the S3-compatible image used for this fork's local checks. The upstream harness supports it.
 Build the release backend first: the harness runs `target/release/backend`
 directly, matching its other security-test servers, rather than rebuilding it.
+
+For rootless Podman tests, start a temporary `podman system service` socket and set
+`DOCKER_HOST` to its Unix URL and `TESTCONTAINERS_RYUK_DISABLED=true`. The harness
+explicitly tears down its containers. Turbo passes through the `DOCKER_*`, `TEST_*`,
+and `TESTCONTAINERS_*` variables needed by this setup.

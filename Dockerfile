@@ -1,4 +1,4 @@
-ARG NODE_BASE_IMAGE=node:24.4.0-bookworm-slim
+ARG NODE_BASE_IMAGE=docker.io/library/node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
 
 FROM $NODE_BASE_IMAGE AS frontend-build-base
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY --from=frontend-pruner /app/tsconfig.options.json .
 RUN yarn turbo run build --filter=@ryot/frontend
 RUN yarn workspaces focus @ryot/frontend --production
 
-FROM --platform=${BUILDPLATFORM} alpine AS artifact
+FROM --platform=${BUILDPLATFORM} docker.io/library/alpine AS artifact
 COPY artifact/ /artifact/
 ARG TARGETARCH
 ENV TARGETARCH=${TARGETARCH}
@@ -35,7 +35,7 @@ LABEL org.opencontainers.image.description="The only self hosted tracker you wil
 ENV FRONTEND_UMAMI_SCRIPT_URL="https://umami.diptesh.me/script.js"
 ENV FRONTEND_UMAMI_WEBSITE_ID="5ecd6915-d542-4fda-aa5f-70f09f04e2e0"
 RUN apt-get update && apt-get install -y --no-install-recommends wget curl ca-certificates procps libc6 && rm -rf /var/lib/apt/lists/*
-COPY --from=caddy:2.9.1 /usr/bin/caddy /usr/local/bin/caddy
+COPY --from=docker.io/library/caddy:2.9.1 /usr/bin/caddy /usr/local/bin/caddy
 RUN npm install --global concurrently@9.1.2 && concurrently --version
 RUN useradd -m -u 1001 ryot
 COPY ci/run-container.sh /usr/local/bin/run-container.sh
