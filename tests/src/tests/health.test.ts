@@ -1,5 +1,9 @@
-import { CoreDetailsDocument } from "@ryot/generated/graphql/backend/graphql";
-import { getGraphqlClient } from "src/utils";
+import {
+	CoreDetailsDocument,
+	CreateAccessLinkDocument,
+	UserAccessLinksDocument,
+} from "@ryot/generated/graphql/backend/graphql";
+import { getGraphqlClient, registerTestUser } from "src/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Health related tests", () => {
@@ -27,5 +31,33 @@ describe("Health related tests", () => {
 
 		expect(coreDetails).toBeDefined();
 		expect(coreDetails.isServerKeyValidated).toBe(true);
+	});
+
+	it("allows a formerly Pro-only operation without a key", async () => {
+		const client = getGraphqlClient(url);
+		const [apiKey] = await registerTestUser(url);
+		const headers = { Authorization: `Bearer ${apiKey}` };
+		const { createAccessLink } = await client.request(
+			CreateAccessLinkDocument,
+			{ input: { name: "Fork feature regression" } },
+			headers,
+		);
+		const { userAccessLinks } = await client.request(
+			UserAccessLinksDocument,
+			{},
+			headers,
+		);
+		expect(userAccessLinks).toContainEqual(
+			expect.objectContaining({ id: createAccessLink.id }),
+		);
+	});
+
+	it("still requires authentication for enabled Pro operations", async () => {
+		const client = getGraphqlClient(url);
+		await expect(
+			client.request(CreateAccessLinkDocument, {
+				input: { name: "Anonymous feature regression" },
+			}),
+		).rejects.toThrow();
 	});
 });
