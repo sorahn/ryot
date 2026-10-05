@@ -26,5 +26,6 @@ describe("Health related tests", () => {
 		const { coreDetails } = await client.request(CoreDetailsDocument);
 
 		expect(coreDetails).toBeDefined();
+		expect(coreDetails.isServerKeyValidated).toBe(true);
 	});
 });

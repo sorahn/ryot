@@ -11,7 +11,6 @@
 
   ```bash title=".env"
   APP_VERSION=v10.0.2
-  UNKEY_ROOT_KEY=dummy-root-key
   DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
   ```
 

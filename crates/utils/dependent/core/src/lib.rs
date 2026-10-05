@@ -4,10 +4,7 @@ use anilist_provider::AnilistService;
 use anyhow::Result;
 use audible_provider::AudibleService;
 use common_models::BackendError;
-use common_utils::{
-    PAGE_SIZE, PEOPLE_SEARCH_SOURCES, TWO_FACTOR_BACKUP_CODES_COUNT, convert_naive_to_utc,
-    get_base_http_client, ryot_log,
-};
+use common_utils::{PAGE_SIZE, PEOPLE_SEARCH_SOURCES, TWO_FACTOR_BACKUP_CODES_COUNT};
 use dependent_models::{
     ApplicationCacheKey, ApplicationCacheValue, CoreDetails, CoreDetailsProviderSpecifics,
     ExerciseFilters, ExerciseParameters, ExerciseParametersLotMapping,
@@ -19,16 +16,13 @@ use enum_models::{
     ExerciseEquipment, ExerciseForce, ExerciseLevel, ExerciseLot, ExerciseMechanic, ExerciseMuscle,
     MediaLot, MediaSource,
 };
-use env_utils::{APP_VERSION, UNKEY_ROOT_KEY};
+use env_utils::APP_VERSION;
 use futures::try_join;
 use igdb_provider::IgdbService;
 use itertools::Itertools;
 use itunes_provider::ITunesService;
-use nest_struct::nest_struct;
 use oidc_utils::create_oidc_client;
-use reqwest::header::{AUTHORIZATION, HeaderValue};
-use sea_orm::{Iterable, prelude::Date};
-use serde::{Deserialize, Serialize};
+use sea_orm::Iterable;
 use supporting_service::SupportingService;
 use tmdb_provider::TmdbService;
 use tvdb_provider::TvdbService;
@@ -170,53 +164,6 @@ async fn build_provider_specifics(
     Ok(specifics)
 }
 
-async fn get_is_server_key_validated(ss: &Arc<SupportingService>) -> Result<bool> {
-    let pro_key = &ss.config.server.pro_key;
-    if pro_key.is_empty() {
-        return Ok(false);
-    }
-    #[nest_struct]
-    #[derive(Debug, Serialize, Clone, Deserialize)]
-    struct VerifyKeyResponse {
-        data: nest! {
-            valid: bool,
-            meta: Option<nest! { expiry: Option<Date> }>
-        },
-    }
-    let client = get_base_http_client(Some(vec![(
-        AUTHORIZATION,
-        HeaderValue::from_str(&format!("Bearer {}", UNKEY_ROOT_KEY)).unwrap(),
-    )]));
-    let Ok(request) = client
-        .post("https://api.unkey.com/v2/keys.verifyKey")
-        .json(&serde_json::json!({ "key": pro_key }))
-        .send()
-        .await
-    else {
-        ryot_log!(warn, "Failed to verify Pro Key.");
-        return Ok(false);
-    };
-    let Ok(response) = request.json::<VerifyKeyResponse>().await else {
-        ryot_log!(warn, "Failed to parse Pro Key verification response.");
-        return Ok(false);
-    };
-    if !response.data.valid {
-        ryot_log!(debug, "Pro Key is no longer valid.");
-        return Ok(false);
-    };
-    let key_meta = response.data.meta;
-    ryot_log!(debug, "Expiry: {:?}", key_meta.clone().map(|m| m.expiry));
-    if let Some(meta) = key_meta
-        && let Some(expiry) = meta.expiry
-        && ss.server_start_time > convert_naive_to_utc(expiry)
-    {
-        ryot_log!(warn, "Pro Key has expired. Please renew your subscription.");
-        return Ok(false);
-    }
-    ryot_log!(debug, "Pro Key verified successfully");
-    Ok(true)
-}
-
 pub async fn core_details(ss: &Arc<SupportingService>) -> Result<CoreDetails> {
     cache_service::get_or_set_with_callback(
         ss,
@@ -276,7 +223,7 @@ pub async fn core_details(ss: &Arc<SupportingService>) -> Result<CoreDetails> {
                 token_valid_for_days: ss.config.users.token_valid_for_days,
                 two_factor_backup_codes_count: TWO_FACTOR_BACKUP_CODES_COUNT,
                 repository_link: "https://github.com/ignisda/ryot".to_owned(),
-                is_server_key_validated: get_is_server_key_validated(ss).await?,
+                is_server_key_validated: true,
             };
             Ok(core_details)
         },

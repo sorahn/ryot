@@ -144,7 +144,6 @@ export async function withRegistrationServer<T>(
 				USERS_ALLOW_REGISTRATION: options.allowRegistration.toString(),
 				USERS_VALIDATE_PASSWORD: "true",
 				USERS_DISABLE_LOCAL_AUTH: "false",
-				UNKEY_ROOT_KEY: "dummy-root-key",
 				SERVER_OIDC_CLIENT_ID: "",
 				SERVER_OIDC_CLIENT_SECRET: "",
 				SERVER_OIDC_ISSUER_URL: "",
