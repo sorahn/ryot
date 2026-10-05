@@ -21,7 +21,7 @@ services:
       - POSTGRES_PASSWORD=postgres
 
   ryot:
-    image: ignisda/ryot:v10 # or ghcr.io/ignisda/ryot:v10
+    image: ghcr.io/sorahn/ryot:latest # prefer a tested commit tag or digest
     pull_policy: always
     container_name: ryot
     restart: unless-stopped
@@ -40,37 +40,18 @@ volumes:
 Some providers (eg: TMDB for movies, IGDB for video games) need access tokens. Please visit
 the [configuration](./configuration.md) page for more information.
 
-## Upgrading to Pro
+## Features in this fork
 
-To see the features of the pro version, check the <a
-:href="`${variables.mainWebsiteUrl}/features`" target="_blank">features page</a>. To
-upgrade to the pro version, you need to provide a `SERVER_PRO_KEY` environment variable.
-You can get a key by purchasing it from the <a :href="variables.mainWebsiteUrl"
-target="_blank">website</a>.
-
-Once you have the key, you can set it in the `docker-compose.yml` file:
-
-```diff
-  ryot:
-    environment:
-+      - SERVER_PRO_KEY=<pro_key_issued_to_you>
-```
-
-If the key is invalid or your subscription has expired, the server will automatically switch
-to the community version. Since the two versions are compatible, you can switch between
-them by simply fixing the key and restarting the server.
+This modified GPLv3 fork enables the existing self-hosted Pro features by default.
+No `SERVER_PRO_KEY` or subscription is required. See [feature availability](./concepts/pro-key.md)
+for configuration requirements. This is not an official Ryot release.
 
 ## Releases
 
-Each version of Ryot is released as docker images. For example, if the latest tag is
-`v5.2.1`, then the docker image will be tagged as `v5.2.1`, `v5.2`, `v5`, `latest` and
-`sha-e145f71` (git commit SHA). The images will be made available on [Docker
-Hub](https://hub.docker.com/r/ignisda/ryot) and [GitHub Container
-Registry](https://ghcr.io/ignisda/ryot). Ryot is released on a (loosely) weekly basis.
-
-If you prefer to live on the edge, you can use the `develop` docker tag which is released
-when changes are merged into the `main` branch. Please note that this tag often has major
-bugs and results in data loss. Only use this tag if you know what you are doing.
+Fork builds are published to [GitHub Container Registry](https://github.com/sorahn/ryot/pkgs/container/ryot)
+for AMD64 and ARM64. The `latest` and `develop` tags follow the fork's main branch;
+prefer a tested commit tag or digest for deployment. Upstream images do not include
+this fork's changes. Back up your database before upgrades.
 
 ## Telemetry
 

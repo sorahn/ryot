@@ -59,3 +59,5 @@ templates
 !ci/helm/**/templates
 !ci/helm/**/templates/**
 .claude/settings.local.json
+
+__pycache__/

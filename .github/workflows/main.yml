@@ -1,6 +1,7 @@
-name: Main
+name: Fork build
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
     tags:
@@ -14,7 +15,6 @@ permissions:
 
 env:
   GHCR_REGISTRY: ghcr.io
-  DOCKER_USERNAME: ignisda
 
 jobs:
   pre-workflow-checks:
@@ -26,8 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
+      - name: Check GPL history and fork sync guard
+        run: |
+          python3 ci/fork-sync.py HEAD
+          python3 ci/test-fork-sync.py
       - name: Set outputs
         id: set_outputs
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
@@ -36,28 +40,8 @@ jobs:
             const repositoryName = context.payload.repository.name;
             const owner = context.repo.owner;
             const ghcrRegistry = process.env.GHCR_REGISTRY;
-            const dockerUsername = process.env.DOCKER_USERNAME;
-
-            let imageNames = [
-              `name=${dockerUsername}/${repositoryName}`,
-              `name=${ghcrRegistry}/${owner}/${repositoryName}`,
-              `name=${dockerUsername}/${repositoryName}-pro`,
-              `name=${ghcrRegistry}/${owner}/${repositoryName}-pro`,
-            ];
-
-            let shouldRun = 'false';
-            if (context.eventName === "push") {
-              shouldRun = 'true';
-            } else if (context.eventName === "pull_request") {
-              const commitMsg = await github.rest.repos.getCommit({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: context.payload.pull_request.head.sha
-              }).then(commit => commit.data.commit.message);
-              if (commitMsg.includes("Run CI")) {
-                shouldRun = 'true';
-              }
-            }
+            const imageNames = [`name=${ghcrRegistry}/${owner}/${repositoryName}`];
+            const shouldRun = 'true';
 
             core.setOutput('should-run', shouldRun);
 
@@ -111,6 +95,10 @@ jobs:
         run: yarn install --immutable
       - name: Build emails
         run: yarn turbo run build --filter=@ryot/transactional
+      - name: Check types and build documentation
+        run: |
+          yarn turbo run typecheck --filter=@ryot/frontend --filter=@ryot/docs --filter=@ryot/transactional --filter=@ryot/tests
+          yarn turbo run build --filter=@ryot/docs
       - name: Copy templates to crates
         run: yarn workspace @ryot/transactional copy-templates
       - name: Upload templates artifact
@@ -175,9 +163,9 @@ jobs:
           locked: false
       - name: Build
         env:
-          UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
           APP_VERSION: ${{ steps.build.outputs.version }}
         run: |
+          cross clippy --locked --target ${{ matrix.platform.target }}
           cross build --locked --target ${{ matrix.platform.target }} --release
       - name: Upload build artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -186,10 +174,50 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/release/backend
           retention-days: 1
 
+  test-fork:
+    needs: build-backend
+    runs-on: ubuntu-latest
+    env:
+      TEST_S3_IMAGE: rustfs/rustfs@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: backend-amd64
+          path: target/release
+      - name: Prepare backend and Caddy
+        run: |
+          chmod +x target/release/backend
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz -o /tmp/caddy_2.9.1_linux_amd64.tar.gz
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_checksums.txt -o /tmp/caddy_checksums.txt
+          cd /tmp
+          grep ' caddy_2.9.1_linux_amd64.tar.gz$' caddy_checksums.txt | sha512sum --check --strict
+          tar -xzf caddy_2.9.1_linux_amd64.tar.gz caddy
+          sudo install caddy /usr/local/bin/caddy
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+          cache: "yarn"
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Run fork feature and access-control regressions
+        run: >-
+          yarn turbo run test --filter=@ryot/tests --
+          src/tests/health.test.ts
+          src/tests/authorization.test.ts
+          src/tests/registration-security.test.ts
+          src/tests/oidc-security.test.ts
+          src/tests/reviews-security.test.ts
+          src/tests/password-recovery-security.test.ts
+          src/tests/token-expiry.test.ts
+
   build-docker:
     needs:
       - pre-workflow-checks
       - build-backend
+      - test-fork
     if: needs.pre-workflow-checks.outputs.should-run == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -207,18 +235,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@65d18f8f8a05aab1b2d761032bec9cd5578caadb
       - name: Log in to the ghcr container registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@28fdb31ff34708d19615a74d67103ddc2ea9725c
-        continue-on-error: true
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Log in to the docker hub container registry
-        uses: docker/login-action@28fdb31ff34708d19615a74d67103ddc2ea9725c
-        continue-on-error: true
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
@@ -227,16 +249,16 @@ jobs:
           tags: |
             type=ref,event=pr
             type=raw,value=develop,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern=v{{version}},enable=${{ needs.pre-workflow-checks.outputs.should-release == 'true' }}
             type=semver,pattern=v{{major}}.{{minor}},enable=${{ needs.pre-workflow-checks.outputs.should-release == 'true' }}
             type=semver,pattern=v{{major}},enable=${{ needs.pre-workflow-checks.outputs.should-release == 'true' }}
-            type=raw,value=latest,enable=${{ needs.pre-workflow-checks.outputs.should-release == 'true' }}
             type=sha
       - name: Build and push
         uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
         with:
           context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
@@ -296,7 +318,7 @@ jobs:
     needs:
       - pre-workflow-checks
       - build-docker
-    if: needs.pre-workflow-checks.outputs.should-release == 'true'
+    if: github.repository == 'IgnisDa/ryot' && needs.pre-workflow-checks.outputs.should-release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write

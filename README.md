@@ -52,7 +52,7 @@ services:
       - postgres_storage:/var/lib/postgresql
 
   ryot:
-    image: ignisda/ryot:v10
+    image: ghcr.io/sorahn/ryot:latest
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -100,9 +100,11 @@ Try the [live demo](https://demo.ryot.io/_s/acl_vUMPnPirkHlT) to explore the int
 - PWA support for mobile use
 - Written in Rust for performance
 
-## Pro Version
+## GPL fork
 
-Ryot Pro adds profile sharing, personalized recommendations, supercharged collections and more. [Learn more](https://ryot.io) about the pro version.
+This modified fork enables all existing self-hosted Pro features without a license
+key. See [FORK.md](./FORK.md) for build instructions and the policy to stop upstream
+updates at the first licensing change. This is not an official Ryot release.
 
 ## Community
 
