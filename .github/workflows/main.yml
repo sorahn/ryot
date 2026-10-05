@@ -143,6 +143,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
+          components: clippy
           targets: ${{ matrix.platform.target }}
       - uses: Swatinem/rust-cache@42c55942cfd355e94e6864616f4dbb3392bd2789
         with:
