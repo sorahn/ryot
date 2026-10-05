@@ -50,7 +50,7 @@ headers, embedded terms, new dependencies, and changed functionality as well.
 
 After merging, check for new independent feature gates, run validation, and review
 the resulting diff before committing/pushing. Do not use GitHub's unguarded
-**Sync fork** button. CI also checks the full branch history before building.
+**Sync fork** button. The local build script checks the full branch history before building.
 
 ## Local container builds
 
