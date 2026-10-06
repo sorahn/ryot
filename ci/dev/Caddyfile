@@ -1,0 +1,31 @@
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	handle_path /_i/* {
+		rewrite * /webhooks/integrations{path}
+		reverse_proxy backend:5000
+	}
+	handle_path /u/* {
+		rewrite * /api/sharing{path}?isAccountDefault=true
+		reverse_proxy frontend:3300
+	}
+	handle_path /_s/* {
+		rewrite * /api/sharing{path}
+		reverse_proxy frontend:3300
+	}
+	handle_path /backend* {
+		reverse_proxy backend:5000
+	}
+	handle /health {
+		header Content-Type text/plain
+		templates
+		respond <<TXT
+			{{ httpInclude "/actions" }}
+			{{ httpInclude "/backend/config" }}
+		TXT
+	}
+	reverse_proxy frontend:3300
+}

@@ -8,7 +8,8 @@
 		"lint-files": "biome check",
 		"build": "react-router build",
 		"typecheck": "react-router typegen && tsc",
-		"dev": "react-router dev --port 3000 --host"
+		"dev": "react-router dev --port 3000 --host",
+		"dev:container": "react-router dev --host 0.0.0.0 --port 3300 --strictPort"
 	},
 	"installConfig": {
 		"hoistingLimits": "workspaces"

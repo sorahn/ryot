@@ -28,6 +28,11 @@
 			"cache": false,
 			"persistent": true
 		},
+		"dev:container": {
+			"cache": false,
+			"persistent": true,
+			"passThroughEnv": ["API_URL", "YARN_INSTALL_STATE_PATH"]
+		},
 		"test-watch": {
 			"cache": false,
 			"persistent": true

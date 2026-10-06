@@ -123,6 +123,60 @@ For Kubernetes, use the imported image's exact name and set `imagePullPolicy: Ne
 to the node where the image is loaded. A registry simplifies distribution across
 nodes but is not necessary. Deployment and database backup are separate steps.
 
+## Fast local development
+
+Run `docker compose up` from this checkout, then open `http://127.0.0.1:8800`.
+On Fedora with Podman, use `podman compose up` with a Compose provider installed.
+The first start builds a development tool image, installs the pinned Yarn
+workspace dependencies, and warms a separate Cargo debug cache. It does not build
+an optimized release image. Subsequent starts reuse named caches.
+
+The stack includes PostgreSQL 18, an incremental debug backend, the frontend dev
+server, and Caddy. Frontend edits hot reload. Rust edits trigger a debug rebuild
+and automatic backend restart; a failed rebuild leaves the last working backend
+running. Library/model changes can still rebuild several crates. Watcher polling
+also works with Docker Desktop bind mounts on the Mac. The runtime is Linux on
+either machine, so host Rust/Node/Caddy installations are unnecessary.
+
+On Fedora, a small backend source edit took 6.5 seconds for watch detection,
+incremental compilation, restart, and GraphQL readiness with two compiler jobs.
+Browser checks verified field save/reload on an existing game and a CSS hot update
+against a private database copy. This is a leaf-edit measurement, not a guarantee
+for schema or dependency changes. Container dependency trees and Yarn installation
+state are isolated from host installations to avoid native-module mismatches.
+
+The proxy and database bind only to loopback (ports 8800 and 55432). Background
+jobs and telemetry are disabled. The development database is the persistent
+`ryot-fork-dev-data` volume; production provider/SMTP configuration is not copied.
+Existing entries work without those credentials; provider searches/refreshes may
+need separate configuration. Game Shelf annotations remain in its schema until
+an explicit import into custom fields is implemented.
+
+To start with real data, use a private `pg_dump -Fc --no-owner --no-acl` snapshot.
+Restore it **before the first backend start**, into an empty development database:
+
+```sh
+mkdir -p artifact/dev-data
+chmod 700 artifact/dev-data
+# Place a privately transferred snapshot at artifact/dev-data/home.dump.
+docker compose up -d db
+docker compose exec -T db pg_restore -U ryot_dev -d ryot_dev --no-owner --no-acl --exit-on-error < artifact/dev-data/home.dump
+docker compose up
+```
+
+The snapshot contains private account/session data. Its directory is Git-ignored
+and excluded from Docker build contexts. Sign in with the copied account. The
+backend applies fork migrations only to the local copy. Restore into an empty
+volume rather than combining dumps with an already migrated database. Nothing in
+the stack connects to production or automatically refreshes the snapshot.
+
+Use `docker compose logs -f backend` to inspect rebuilds and `docker compose down`
+to stop everything while retaining data and caches. Avoid `down -v` unless you
+intend to delete the local database and caches. Moving to the Mac requires the
+checkout and a privately transferred snapshot; rebuild caches on that machine.
+Leave the Mac migration for a separate task. Release deployment continues to use
+`ci/build-fork.sh` and the licensing guard.
+
 ## Validation
 
 ```sh
