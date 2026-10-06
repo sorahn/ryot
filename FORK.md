@@ -145,6 +145,11 @@ against a private database copy. This is a leaf-edit measurement, not a guarante
 for schema or dependency changes. Container dependency trees and Yarn installation
 state are isolated from host installations to avoid native-module mismatches.
 
+React Router's `future.unstable_optimizeDeps` scans route dependencies at startup;
+Vite also pre-bundles the PWA's generated `workbox-window` import. This avoids
+late dependency rebundling while navigating to login and other pages. Revalidate
+the experimental router flag when upgrading the pinned frontend toolchain.
+
 The proxy and database bind only to loopback (ports 8800 and 55432). Background
 jobs and telemetry are disabled. The development database is the persistent
 `ryot-fork-dev-data` volume; production provider/SMTP configuration is not copied.

@@ -5,6 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+	optimizeDeps: {
+		include: ["workbox-window"],
+	},
 	server: {
 		allowedHosts: true,
 		host: process.env.FRONTEND_HOST,
