@@ -48,7 +48,7 @@ const searchParamsSchema = z.object({
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema> &
-	Record<string, string>;
+	Record<string, string | boolean | undefined>;
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
 	const query = parseSearchQuery(request, searchParamsSchema);
