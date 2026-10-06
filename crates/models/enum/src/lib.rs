@@ -1,3 +1,6 @@
+mod custom_fields;
+pub use custom_fields::*;
+
 mod exercise_enums;
 pub use exercise_enums::*;
 

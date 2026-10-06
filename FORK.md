@@ -18,6 +18,20 @@ External metadata API credentials, SMTP, and file storage must still be configur
 for features that require them. The marketing/payment website is not part of the
 self-hosted container and its deployment workflow is disabled for this fork.
 
+## Custom fields
+
+User-defined fields work across all media types. Manage definitions under
+**Settings → Custom fields**, then edit values on an item's **Custom fields** tab.
+Text, numbers, checkboxes, dates, and single/multiple choice fields are supported.
+Definitions and values are private to each account, independent of provider
+metadata and tracking status. See [the custom-fields guide](apps/docs/src/guides/custom-fields.md)
+for editing, safe merge behavior, and the separate JSON export/import workflow.
+No game-specific schema or Game Shelf import is included.
+
+This feature adds the forward-only `m20261005_create_custom_fields` database
+migration. Back up PostgreSQL before deploying it. Game Shelf and the live homelab
+deployment are unchanged.
+
 ## Upstream policy
 
 The fixed GPL baseline is recorded in `.fork/upstream-base`:
@@ -119,8 +133,8 @@ The integration suite requires a Docker-compatible daemon, Caddy, and the fronte
 toolchain. It creates disposable PostgreSQL/S3 containers and mock OIDC/local
 application processes. The health regressions check enabled status and access-link creation without a key,
 and reject anonymous access; the existing authorization/security tests exercise access boundaries.
-Back up the database before deploying an upgrade. No schema changes are required
-by this fork's feature change.
+Back up the database before deploying an upgrade. Keyless feature availability
+requires no schema changes; custom fields add two tables via a forward-only migration.
 
 If the upstream default MinIO image is unavailable, set `TEST_S3_IMAGE` to
 `rustfs/rustfs@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c`,

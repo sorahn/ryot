@@ -1,0 +1,15 @@
+mutation SaveCustomField($input: SaveCustomFieldInput!) {
+  saveCustomField(input: $input) { ...CustomFieldDetails }
+}
+
+mutation DeleteCustomField($fieldId: String!) {
+  deleteCustomField(fieldId: $fieldId)
+}
+
+mutation SaveMetadataCustomFields($metadataId: String!, $values: [CustomFieldValueInput!]!) {
+  saveMetadataCustomFields(metadataId: $metadataId, values: $values)
+}
+
+mutation ImportCustomFields($document: JSON!) {
+  importCustomFields(document: $document)
+}

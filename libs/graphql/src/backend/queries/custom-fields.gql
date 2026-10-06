@@ -1,0 +1,23 @@
+fragment CustomFieldDetails on CustomField {
+  id
+  name
+  kind
+  description
+  mediaLots
+  options
+}
+
+query UserCustomFields {
+  userCustomFields { ...CustomFieldDetails }
+}
+
+query MetadataCustomFields($metadataId: String!) {
+  metadataCustomFields(metadataId: $metadataId) {
+    definition { ...CustomFieldDetails }
+    value
+  }
+}
+
+query ExportCustomFields {
+  exportCustomFields
+}

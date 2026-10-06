@@ -8,6 +8,8 @@ pub mod calendar_event;
 pub mod collection;
 pub mod collection_entity_membership;
 pub mod collection_to_entity;
+pub mod custom_field;
+pub mod custom_field_value;
 pub mod daily_user_activity;
 pub mod entity_translation;
 pub mod exercise;

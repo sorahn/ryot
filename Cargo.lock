@@ -8663,6 +8663,8 @@ dependencies = [
  "rand 0.9.2",
  "ring",
  "sea-orm",
+ "serde",
+ "serde_json",
  "session-service",
  "subtle",
  "supporting-service",
@@ -8681,6 +8683,7 @@ dependencies = [
  "database-models",
  "dependent-models",
  "media-models",
+ "serde_json",
  "traits",
  "user-service",
 ]

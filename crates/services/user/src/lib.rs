@@ -1,6 +1,9 @@
 pub mod access_link_operations;
 pub mod authentication_operations;
 mod authorization;
+pub mod custom_field_operations;
+pub mod custom_field_portability;
+mod custom_field_validation;
 pub mod integration_operations;
 pub mod notification_operations;
 pub mod oidc_operations;

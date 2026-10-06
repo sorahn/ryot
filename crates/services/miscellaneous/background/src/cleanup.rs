@@ -21,6 +21,7 @@ pub async fn remove_useless_data(ss: &Arc<SupportingService>) -> Result<()> {
         .column(metadata::Column::Id)
         .left_join(UserToEntity)
         .filter(user_to_entity::Column::MetadataId.is_null())
+        .filter(Expr::cust("NOT EXISTS (SELECT 1 FROM custom_field_value WHERE custom_field_value.metadata_id = metadata.id)"))
         .into_tuple::<String>()
         .all(&ss.db)
         .await?;
@@ -28,6 +29,7 @@ pub async fn remove_useless_data(ss: &Arc<SupportingService>) -> Result<()> {
         ryot_log!(debug, "Deleting {} metadata items", chunk.len());
         Metadata::delete_many()
             .filter(metadata::Column::Id.is_in(chunk))
+            .filter(Expr::cust("NOT EXISTS (SELECT 1 FROM custom_field_value WHERE custom_field_value.metadata_id = metadata.id)"))
             .exec(&ss.db)
             .await
             .trace_ok();

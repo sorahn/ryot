@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+mod custom_fields;
+
 use anyhow::{Result, bail};
 use chrono::Datelike;
 use common_models::{
@@ -49,6 +51,7 @@ pub async fn merge_metadata(
     merge_into: String,
 ) -> Result<bool> {
     let txn = ss.db.begin().await?;
+    custom_fields::merge_values(&txn, &user_id, &merge_from, &merge_into).await?;
     for old_seen in Seen::find()
         .filter(seen::Column::MetadataId.eq(&merge_from))
         .filter(seen::Column::UserId.eq(&user_id))

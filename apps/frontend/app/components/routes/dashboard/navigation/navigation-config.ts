@@ -73,6 +73,10 @@ export const getSettingsLinks = (
 			tourControlTarget: OnboardingTourStepTarget.OpenSettingsPreferences,
 		},
 		{
+			label: "Custom fields",
+			link: "/settings/custom-fields",
+		},
+		{
 			label: "Imports and Exports",
 			link: $path("/settings/imports-and-exports"),
 		},

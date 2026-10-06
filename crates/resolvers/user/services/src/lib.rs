@@ -1,12 +1,18 @@
 use async_graphql::{Context, Object, Result};
-use database_models::{integration, notification_platform};
-use dependent_models::{CachedResponse, UserMetadataRecommendationsResponse};
+use database_models::{custom_field, integration, notification_platform};
+use dependent_models::{
+    CachedResponse, CustomFieldValueInput, MetadataCustomField, SaveCustomFieldInput,
+    UserMetadataRecommendationsResponse,
+};
 use media_models::{
     CreateOrUpdateUserIntegrationInput, CreateUserNotificationPlatformInput,
     UpdateUserNotificationPlatformInput,
 };
 use traits::GraphqlDependencyInjector;
-use user_service::{integration_operations, notification_operations, recommendation_operations};
+use user_service::{
+    custom_field_operations, custom_field_portability, integration_operations,
+    notification_operations, recommendation_operations,
+};
 
 #[derive(Default)]
 pub struct UserServicesQueryResolver;
@@ -15,6 +21,28 @@ impl GraphqlDependencyInjector for UserServicesQueryResolver {}
 
 #[Object]
 impl UserServicesQueryResolver {
+    async fn user_custom_fields(&self, gql_ctx: &Context<'_>) -> Result<Vec<custom_field::Model>> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_operations::user_custom_fields(service, &user_id).await?)
+    }
+
+    async fn metadata_custom_fields(
+        &self,
+        gql_ctx: &Context<'_>,
+        metadata_id: String,
+    ) -> Result<Vec<MetadataCustomField>> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(
+            custom_field_operations::metadata_custom_fields(service, &user_id, &metadata_id)
+                .await?,
+        )
+    }
+
+    async fn export_custom_fields(&self, gql_ctx: &Context<'_>) -> Result<serde_json::Value> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_portability::export_custom_fields(service, &user_id).await?)
+    }
+
     /// Get metadata recommendations for the currently logged in user.
     async fn user_metadata_recommendations(
         &self,
@@ -51,6 +79,45 @@ impl GraphqlDependencyInjector for UserServicesMutationResolver {
 
 #[Object]
 impl UserServicesMutationResolver {
+    async fn save_custom_field(
+        &self,
+        gql_ctx: &Context<'_>,
+        input: SaveCustomFieldInput,
+    ) -> Result<custom_field::Model> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_operations::save_custom_field(service, &user_id, input).await?)
+    }
+
+    async fn delete_custom_field(&self, gql_ctx: &Context<'_>, field_id: String) -> Result<bool> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_operations::delete_custom_field(service, &user_id, &field_id).await?)
+    }
+
+    async fn save_metadata_custom_fields(
+        &self,
+        gql_ctx: &Context<'_>,
+        metadata_id: String,
+        values: Vec<CustomFieldValueInput>,
+    ) -> Result<bool> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_operations::save_metadata_custom_fields(
+            service,
+            &user_id,
+            &metadata_id,
+            values,
+        )
+        .await?)
+    }
+
+    async fn import_custom_fields(
+        &self,
+        gql_ctx: &Context<'_>,
+        document: serde_json::Value,
+    ) -> Result<bool> {
+        let (service, user_id) = self.dependency_and_user(gql_ctx).await?;
+        Ok(custom_field_portability::import_custom_fields(service, &user_id, document).await?)
+    }
+
     /// Create or update an integration for the currently logged in user.
     async fn create_or_update_user_integration(
         &self,

@@ -68,6 +68,7 @@ import {
 	EditButton,
 	SkeletonLoader,
 } from "~/components/common";
+import { CustomFieldsPanel } from "~/components/common/custom-fields-panel";
 import { MediaDetailsLayout } from "~/components/common/layout";
 import {
 	DisplayThreePointReview,
@@ -562,6 +563,7 @@ export default function Page() {
 						) : null}
 						<Tabs variant="outline" value={tab} onChange={(t) => setTab(t)}>
 							<Tabs.List mb="xs">
+								<Tabs.Tab value="customFields">Custom fields</Tabs.Tab>
 								<Tabs.Tab
 									value="overview"
 									leftSection={<IconInfoCircle size={16} />}
@@ -629,6 +631,11 @@ export default function Page() {
 									</Tabs.Tab>
 								) : null}
 							</Tabs.List>
+							<Tabs.Panel value="customFields">
+								<MediaScrollArea>
+									<CustomFieldsPanel metadataId={loaderData.metadataId} />
+								</MediaScrollArea>
+							</Tabs.Panel>
 							<Tabs.Panel value="overview">
 								<MediaScrollArea>
 									<Stack gap="sm">

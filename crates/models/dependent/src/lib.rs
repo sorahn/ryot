@@ -1,6 +1,9 @@
 mod analytics;
 pub use analytics::*;
 
+mod custom_fields;
+pub use custom_fields::*;
+
 mod caches;
 pub use caches::*;
 

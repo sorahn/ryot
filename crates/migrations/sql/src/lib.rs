@@ -30,6 +30,7 @@ mod m20251128_create_entity_translation;
 mod m20251218_is_v10_migration;
 mod m20260118_changes_for_issue_1672;
 mod m20260201_changes_for_issue_1044;
+mod m20261005_create_custom_fields;
 
 pub struct Migrator;
 
@@ -66,6 +67,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251218_is_v10_migration::Migration),
             Box::new(m20260118_changes_for_issue_1672::Migration),
             Box::new(m20260201_changes_for_issue_1044::Migration),
+            Box::new(m20261005_create_custom_fields::Migration),
         ]
     }
 }
