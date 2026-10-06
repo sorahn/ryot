@@ -87,9 +87,15 @@ marker in the default image name.
 
 When targeting a different CPU architecture, install `cross` and the Rust target
 via rustup. Cross uses the container engine and pinned images in `Cross.toml`.
+Use fully qualified image references with their pinned digest; Cross 0.2.5 does
+not accept a digest-only `@sha256:...` reference. On Fedora, install
+`qemu-user-static-aarch64` for ARM64 container emulation and verify it with
+`podman run --rm --platform linux/arm64 docker.io/library/alpine:3.23 uname -m`.
 Building the foreign-architecture container also requires working binfmt/QEMU
-emulation. Building on a native ARM64 machine avoids those requirements. ARM64
-cross-building has not yet been validated on this Fedora workstation.
+emulation. On 2026-10-06, this Fedora workstation successfully cross-built and
+smoke-tested the ARM64 image, including all custom-field types and media types.
+A native ARM64 Linux builder avoids cross-compilation and runtime emulation;
+on a Mac, compile the backend inside an ARM64 Linux container.
 
 The local runtime uses Node 24 on Debian Trixie, which supports the glibc symbols
 used by the Fedora-built native backend. The Dockerfile checks linked libraries
@@ -103,8 +109,11 @@ A registry is optional. Export a local image, copy the archive to the target
 machine, and load it there:
 
 ```sh
-podman save --format oci-archive -o ryot-arm64.tar localhost/ryot:fork-COMMIT-arm64
-# Copy ryot-arm64.tar to the target machine using your preferred transfer method.
+mkdir -p artifact/images
+podman save --format oci-archive -o artifact/images/ryot-arm64.tar localhost/ryot:fork-COMMIT-arm64
+(cd artifact/images && sha256sum ryot-arm64.tar > ryot-arm64.tar.sha256)
+# Copy the archive and checksum to the target machine.
+# On the target, verify with sha256sum -c ryot-arm64.tar.sha256.
 # With containerd/K3s on that machine:
 sudo k3s ctr images import ryot-arm64.tar
 ```

@@ -9,3 +9,5 @@ node_modules
 **/dist
 **/.turbo
 **/.react-router
+artifact/images
+artifact/dev-data
