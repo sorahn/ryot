@@ -25,7 +25,9 @@ image="${FORK_IMAGE:-localhost/ryot:fork-${revision}-${architecture}}"
 
 node .yarn/releases/yarn-4.1.1.cjs install --immutable
 node .yarn/releases/yarn-4.1.1.cjs turbo run build --filter=@ryot/transactional
-node .yarn/releases/yarn-4.1.1.cjs workspace @ryot/transactional copy-templates
+if ! diff -qr libs/transactional/out crates/services/notification/templates >/dev/null; then
+  node .yarn/releases/yarn-4.1.1.cjs workspace @ryot/transactional copy-templates
+fi
 
 if [[ "$(uname -m)" == "$native_machine" ]]; then
   cargo build --release --locked
